@@ -115,7 +115,7 @@ def remove_all_non_obj_dir(dir):
 def handle_special_files():
 	special_files = ['arch/x86/syscalls/syscall_32.tbl', \
 					'fs/xfs/xfs_sysctl.h', \
-					'drivers/usbhid/usbhid.h', \
+					'drivers/hid/usbhid/usbhid.h', \
 					'sound/arm/pxa2xx-pcm.h', \
 					'drivers/marvell', \
 					'fs/exofs',	\
@@ -123,11 +123,8 @@ def handle_special_files():
 					'drivers/staging/android',	\
 					'arch/arm/tools',	\
 					]
-
+	useful_dts = ['pxa', 'sec', 'ske', '88p', 'mmp','Mak']
 	for name in special_files:
-		print name
-		print srcdir
-		print workdir
 		srcpath = os.path.join(srcdir, name)
 		dstpath = os.path.join(workdir, name)
 		print "special file: "+srcpath
@@ -136,14 +133,15 @@ def handle_special_files():
 		if os.path.isdir(srcpath):
 			shutil.rmtree(dstpath)
 			shutil.copytree(srcpath, dstpath)
-			if name == 'arch/arm/boot/dts':
+			if 'dts' in name.split('/'):
+				print "for dts: from"+srcpath+"to"+dstpath
 				for root, dirs, files in os.walk(dstpath, topdown=True):
 					for name in files:
-						if name[:2] not in ['pxa', 'sec', 'ske', '88p', 'mmp']:
+						if name[:3] not in useful_dts	\
+							and 'include' not in root.split('/'):
+							print "remove: "+os.path.join(root, name)
 							os.remove(os.path.join(root, name))
 			 
-	
-
 
 workdir,srcdir = copy_tmp_dir()
 print "working dir is : " + workdir
