@@ -25,9 +25,25 @@
 			- to the lowest level dir
 			- if no .o, remove this dir
 			- if only built-in.o, keep this dir and Makefile, remove src files
-    3. .c/.S files
-        * find the .o correspondent .c/.S files and save to a basic_src_list.txt
-        * grep the #include "xxx.c" in .c files and #include "xxx.S" in .S files
+    3. .c/.S files to remove
+        * init all source files to to_remove_source_list
+		* find all .o correspondent .c/.S files, add to compiled_source_list
+        * grep the #include "xxx.c" in .c files and #include "xxx.S" in .S
+		  add these files to compiled_source_list.
+		* remove all compiled_source_list in to_remove_source_list 
 	4. .h files
+		* init all head files to to_remove_source_list
+		* grep all #include <*.h> or "*.h" in compiled_source_list files
+		* add the found files to used_source_list
+		* remove all head files in used_source_list in to_remove_source_list
+	5. Handle the #def related redudent include files
+
+
+
+
+
+
+
+
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.2
 
 import os,sys,shutil
 
@@ -6,36 +6,36 @@ def copy_tmp_dir():
 	srcdir = sys.argv[1]
 	if srcdir[-1] == '/':
 		tmpname = srcdir[:-1]
-		print tmpname
+		print(tmpname)
 	else:
 		tmpname = srcdir
 	(head, tail) = os.path.split(tmpname)
-#	print (head, tail)
+#	print((head, tail))
 	workdir = head+"/tmp"
 	os.chdir(head)
-	print os.getcwd()
+	print(os.getcwd())
 	# system() is much faster than shutil but unportable
 	if 1:
 		cmdline = "rm -r tmp && cp -a " + tail + " tmp"
 		os.system(cmdline)
 	else:
 		shutil.rmtree(workdir, ignore_errors=True)
-		shutil.copytree(srcdir, workdir)
+		shutil.copytree(srcdir, workdir, symlinks=True)
 	return (workdir,srcdir)
 
 
 def list_dir(dir):
 	list = os.listdir(dir)
 	for line in list:
-		print line
+		print(line)
 
 #list_dir(dir)
 
 def walk_dir(dir, topdown=True):
 	for root, d, files in os.walk(dir, topdown):
-		print root
-		print d
-		print files
+		print(root)
+		print(d)
+		print(files)
 #		for name in files:
 #			print(os.path.join(d, name))
 #			print name
@@ -84,7 +84,7 @@ def remove_all_non_obj_dir(dir):
 					break
 			
 	non_obj_list.sort()
-	print "-------- sorted non_obj_list --------"
+	print("-------- sorted non_obj_list --------")
 	for name in non_obj_list:
 		to_remove = 1
 		if name[-2:] == ".o":
@@ -93,16 +93,14 @@ def remove_all_non_obj_dir(dir):
 			if len(other) > len(name):
 				if other[-2:] == ".o" and name == other[:len(name)]:
 						to_remove = 0
-#						print "-2-:"+name
-#						print "-3-:"+other
 						break
 
 		if to_remove == 1:
 			path = os.path.join(workdir, name)
 			if "gcov" in name.split('/'):
-				print "gcov:"+path
+				print("gcov:"+path)
 			if os.path.exists(path):
-#				print "remove:"+path
+#				print("remove:"+path)
 				# as some Kconfig include unused Kconfig of dir
 				# For compile, we should keep
 				# For just code reading, we can remove it
@@ -127,24 +125,25 @@ def handle_special_files():
 	for name in special_files:
 		srcpath = os.path.join(srcdir, name)
 		dstpath = os.path.join(workdir, name)
-		print "special file: "+srcpath
+		print("special file: "+srcpath)
 		if os.path.isfile(srcpath) and not os.path.exists(dstpath):
 			shutil.copy(srcpath, dstpath)	
 		if os.path.isdir(srcpath):
+			print("path: "+dstpath+" exist is ", os.path.exists(dstpath))
 			shutil.rmtree(dstpath)
-			shutil.copytree(srcpath, dstpath)
+			shutil.copytree(srcpath, dstpath, symlinks=True)
 			if 'dts' in name.split('/'):
-				print "for dts: from"+srcpath+"to"+dstpath
+				print("for dts: from"+srcpath+"to"+dstpath)
 				for root, dirs, files in os.walk(dstpath, topdown=True):
 					for name in files:
 						if name[:3] not in useful_dts	\
 							and 'include' not in root.split('/'):
-							print "remove: "+os.path.join(root, name)
+							print("remove: "+os.path.join(root, name))
 							os.remove(os.path.join(root, name))
 			 
 
 workdir,srcdir = copy_tmp_dir()
-print "working dir is : " + workdir
+print("working dir is : " + workdir)
 remove_only_built_in_dirs(workdir)
 
 for name in os.listdir(workdir):
@@ -152,8 +151,8 @@ for name in os.listdir(workdir):
 	if name not in ignored_dir:
 		path_name = os.path.join(workdir, name)
 		if os.path.isdir(path_name):
-			print "------------------ handled path: "+path_name
-#			print "return value: "+remove_non_built_in_dirs(path_name)
+			print("------------------ handled path: "+path_name)
+#			print("return value: "+remove_non_built_in_dirs(path_name))
 			remove_all_non_obj_dir(path_name)
 
 handle_special_files()
