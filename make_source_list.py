@@ -2,8 +2,8 @@
 
 import os,sys,shutil
 
-opened_file_list = []
-opened_file_list2 = []
+opened_file_list = {'a':True}
+opened_file_list2 = {'b':True}
 source_list = []
 
 if len(sys.argv) < 5:
@@ -24,6 +24,9 @@ def save_list_to_file(filename, listname):
 		
 
 def make_opened_file_list():
+	global opened_file_list
+	global opened_file_list2
+
 	try:
 		f = open(strace_log, 'r')
 		for line in f.readlines():
@@ -34,15 +37,16 @@ def make_opened_file_list():
 					if fname[0:len(srcpath)] == srcpath:
 						fname = fname[len(srcpath)+1:]
 
-					if fname not in opened_file_list and \
-						fname[-2:] not in ['.o', '.d'] and \
-						fname[-4:] not in ['.cmd', '.tmp'] and \
-						fname not in opened_file_list:
-						opened_file_list.append(fname)
+					#if fname not in opened_file_list and \
+					if fname[-2:] not in ['.o', '.d'] and \
+						fname[-4:] not in ['.cmd', '.tmp']:
+						#opened_file_list.append(fname)
+						opened_file_list.setdefault(fname,True)
 		
-		opened_file_list.sort()
+		#opened_file_list.sort()
 		#print("len :%d" % len(opened_file_list))
-		for name in opened_file_list:
+		for name in opened_file_list.keys():
+			print("name in dict: %s " % name)
 			if len(name.split('..')) > 1:
 				#print(name)
 				nlist = name.split("/")
@@ -61,15 +65,16 @@ def make_opened_file_list():
 					nlist = nlist[0:start-num]+nlist[start+num:]
 					realname = '/'.join(nlist)
 				#print("realname: "+realname)
-				opened_file_list2.append(realname)
+				opened_file_list2.setdefault(name,True)
 			else:
-				opened_file_list2.append(name)
+				opened_file_list2.setdefault(name,True)
 
 #		save_list_to_file("opened_file_list.txt", opened_file_list)
 #		save_list_to_file("opened_file_list_2.txt", opened_file_list2)
-		for name in opened_file_list2:
+		for name in opened_file_list2.keys():
 			if name[-2:] in ['.c', '.S', '.h']:
 				source_list.append(name)
+		source_list.sort()
 		save_list_to_file(source_list_name, source_list)
 
 	except IOError:
