@@ -2,8 +2,8 @@
 
 import os,sys,shutil
 
-opened_file_list = {'a':True}
-opened_file_list2 = {'b':True}
+opened_source = {}
+opened_source2 = {}
 source_list = []
 
 if len(sys.argv) < 5:
@@ -11,7 +11,7 @@ if len(sys.argv) < 5:
 	sys.exit()
 
 strace_log = sys.argv[1]
-srcpath = os.path.normpath(sys.argv[2])
+srcpath = os.path.realpath(sys.argv[2])
 dstpath = os.path.normpath(sys.argv[3])
 source_list_name = sys.argv[4]
 
@@ -22,10 +22,9 @@ def save_list_to_file(filename, listname):
 		f.writelines("\n")
 	f.close()
 		
-
-def make_opened_file_list():
-	global opened_file_list
-	global opened_file_list2
+def make_opened_source():
+	global opened_source
+	global opened_source2
 
 	try:
 		f = open(strace_log, 'r')
@@ -37,18 +36,13 @@ def make_opened_file_list():
 					if fname[0:len(srcpath)] == srcpath:
 						fname = fname[len(srcpath)+1:]
 
-					#if fname not in opened_file_list and \
 					if fname[-2:] not in ['.o', '.d'] and \
 						fname[-4:] not in ['.cmd', '.tmp']:
-						#opened_file_list.append(fname)
-						opened_file_list.setdefault(fname,True)
+						opened_source.setdefault(fname,True)
 		
-		#opened_file_list.sort()
-		#print("len :%d" % len(opened_file_list))
-		for name in opened_file_list.keys():
-			print("name in dict: %s " % name)
+		for name in opened_source.keys():
 			if len(name.split('..')) > 1:
-				#print(name)
+				print(name)
 				nlist = name.split("/")
 				pos = 0 
 				start = 0 
@@ -65,13 +59,17 @@ def make_opened_file_list():
 					nlist = nlist[0:start-num]+nlist[start+num:]
 					realname = '/'.join(nlist)
 				#print("realname: "+realname)
-				opened_file_list2.setdefault(name,True)
+				opened_source2.setdefault(realname,True)
 			else:
-				opened_file_list2.setdefault(name,True)
+				opened_source2.setdefault(name,True)
 
-#		save_list_to_file("opened_file_list.txt", opened_file_list)
-#		save_list_to_file("opened_file_list_2.txt", opened_file_list2)
-		for name in opened_file_list2.keys():
+		l = list(opened_source.keys())
+		l.sort()
+		save_list_to_file("opened_source.txt", l)
+		l2 = list(opened_source2.keys())
+		l2.sort()
+		save_list_to_file("opened_source_2.txt", l2)
+		for name in opened_source2.keys():
 			if name[-2:] in ['.c', '.S', '.h']:
 				source_list.append(name)
 		source_list.sort()
@@ -106,7 +104,7 @@ def make_list_and_linkdir():
 		for name in files:
 			relpath = os.path.join(root[len(dstpath)+1:], name)
 			if relpath[-2:] in ['.c', '.h', '.S']:
-				if relpath not in opened_file_list2:
+				if relpath not in opened_source2:
 					rmname =  os.path.join(root, name)
 					#print("remove: "+rmname)
 					os.remove(rmname)
@@ -122,7 +120,7 @@ def copy_missed_files():
 		os.symlink(sname, lname)
 		
 
-make_opened_file_list()
+make_opened_source()
 make_list_and_linkdir()
 copy_missed_files()
 
