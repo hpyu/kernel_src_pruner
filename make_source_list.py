@@ -41,25 +41,8 @@ def make_opened_source():
 						opened_source.setdefault(fname,True)
 		
 		for name in opened_source.keys():
-			if len(name.split('..')) > 1:
-				print(name)
-				nlist = name.split("/")
-				pos = 0 
-				start = 0 
-				num = 0 
-				while pos < len(nlist):
-					if nlist[pos] == '..':
-						if start == 0:
-							start = pos 
-						num += 1
-					pos += 1
-				if start - num == 0:
-					realname = '/'.join(nlist[start+num:])
-				else:
-					nlist = nlist[0:start-num]+nlist[start+num:]
-					realname = '/'.join(nlist)
-				#print("realname: "+realname)
-				opened_source2.setdefault(realname,True)
+			if name.find('..') != -1:
+				opened_source2.setdefault(os.path.normal(name),True)
 			else:
 				opened_source2.setdefault(name,True)
 
