@@ -77,7 +77,7 @@ def extract_opened_files(strace_log, opened_files, srcroot):
 		printf(e)
 		sys.exit()
 
-def build_clean_tree(opened_files, srcroot, dstroot):
+def build_clean_tree(opened_files, srcroot, dstroot, link):
 	if exists(dstroot):
 		shutil.rmtree(dstroot)
 	
@@ -99,8 +99,11 @@ def build_clean_tree(opened_files, srcroot, dstroot):
 		dst = join(dstroot, name)
 
 		if isfile(src) and not os.path.exists(dst):
-			shutil.copyfile(src, dst)
-			shutil.copymode(src, dst)
+			if link:
+				os.symlink(src, dst)
+			else:
+				shutil.copyfile(src, dst)
+				shutil.copymode(src, dst)
 			
 def usage():
 	help_info = {
@@ -146,7 +149,6 @@ def main():
 		usage()
 	
 	if strace_log == None or srcroot == None or dstroot == None:
-		printf("xxxxxxxxxxxxxxxxxx")
 		usage()
 
 	if exists(dstroot):
@@ -160,7 +162,7 @@ def main():
 
 	os.makedirs(dstroot, mode=0o777)
 	extract_opened_files(strace_log, opened_files, srcroot)
-	build_clean_tree(opened_files, srcroot, dstroot)
+	build_clean_tree(opened_files, srcroot, dstroot, link)
 
 if __name__ == '__main__':
 	# Python2.x & 3.x compatible
