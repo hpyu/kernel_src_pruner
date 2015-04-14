@@ -1,7 +1,7 @@
 '''
 	[hpyu] 2015.4.8
 	Re-struct the code, remove global varibles
-	time python3.2 make_source_list.py ~/ramtmp/kernel/strace_log.txt ~/ramtmp/kernel ~/ramtmp/k
+	time python3.2 make_source_list.py -f ~/ramtmp/kernel/strace_log.txt -s ~/ramtmp/kernel -d  ~/ramtmp/k
 '''
 
 def save_list_to_file(filename, listname):
@@ -102,18 +102,53 @@ def build_clean_tree(opened_files, srcroot, dstroot):
 			shutil.copyfile(src, dst)
 			shutil.copymode(src, dst)
 			
+def usage():
+	help_info = {
+		"Usage:",
+			"-h, help info,",
+			"-f strace_log,",
+			"-s srcdir, original kernel path,",
+			"-d dstdir, pruned kernel path,",
+			"-l, create symbol link for all files,",
+	}
+
+	for line in help_info:
+		printf(line)
+	
+	sys.exit()
+
 
 def main():
 	opened_files = {}
 
-	if len(sys.argv) < 4:
-		printf("Usage: %s strace_log src_dir dst_dir" % sys.argv[0])
-		sys.exit()
+	strace_log = None
+	srcroot = None
+	dstroot = None
+	link = False
 
-	strace_log = sys.argv[1]
-	srcroot = normpath(sys.argv[2])
-	dstroot = normpath(sys.argv[3])
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "hf:s:d:l")
+		for opt, arg in opts:
+			if opt == '-h':
+				usage()
+			elif opt == '-f':
+				strace_log = arg
+			elif opt == '-s':
+				srcroot = normpath(arg)
+			elif opt == '-d':
+				dstroot = normpath(arg)
+			elif opt == '-l':
+				link = True
+			else:
+				printf("Ignore invalid opt:%s\n" % opt)
+
+	except getopt.GetoptError:
+		usage()
 	
+	if strace_log == None or srcroot == None or dstroot == None:
+		printf("xxxxxxxxxxxxxxxxxx")
+		usage()
+
 	if exists(dstroot):
 		printf("remove "+dstroot)
 		rm = input(dstroot + " exists, enter Y if you agree to remove:")
@@ -131,6 +166,6 @@ if __name__ == '__main__':
 	# Python2.x & 3.x compatible
 	from distutils.log import warn as printf
 	from os.path import *
-	import os,sys,shutil
+	import os,sys,shutil,getopt
 	main()
 
