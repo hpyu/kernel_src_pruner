@@ -67,15 +67,16 @@ def build_clean_tree(p):
 				shutil.copymode(src, dst)
 			
 def usage():
-	help_info = {
+	help_info = [
 		"Usage:",
+			"time python ~/toolkit/kernel_pruner.py  -s strace_log.txt -s . -d ../k",
 			"-f strace_log -- output file of strace",
 			"-s srcdir -- original kernel path,",
 			"-d dstdir -- pruned kernel path,",
 			"-h -- help info,",
 			"-l -- create symbol link for all files,",
 			"-c -- craete compiling script",
-	}
+	]
 
 	for line in help_info:
 		printf(line)
