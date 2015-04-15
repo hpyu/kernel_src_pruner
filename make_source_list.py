@@ -4,43 +4,6 @@
 	time python3.2 make_source_list.py -f ~/ramtmp/kernel/strace_log.txt -s ~/ramtmp/kernel -d  ~/ramtmp/k
 '''
 
-def save_list_to_file(filename, listname):
-	f = open(filename,'w')
-	for name in listname:
-		f.writelines(name)
-		f.writelines("\n")
-	f.close()
-
-def dump_to_files(file_map, opened_files):
-	source_list = []
-
-	l = list(file_map.keys())
-	l.sort()
-	save_list_to_file("file_map.txt", l)
-	l2 = list(opened_files.keys())
-	l2.sort()
-	save_list_to_file("opened_files.txt", l2)
-
-	for name in opened_files.keys():
-		if name[-2:] in ['.c', '.S', '.h']:
-			source_list.append(name)
-	source_list.sort()
-	save_list_to_file("source_list.txt", source_list)
-	
-def copy_source_tree(srcroot, dstroot):
-	for root, dirs, files in os.walk(srcroot,topdown=true, followlinks=true):
-		relpath = root[len(srcroot)+1:]
-		#print(dirs)
-		dirname = join(dstroot,relpath)
-		if not exists(dirname):
-			os.makedirs(dirname)
-		
-		for name in files:
-			linkname = join(dstroot,relpath,name)
-			srcname = join(root, name)
-			if not exists(linkname):
-				os.symlink(srcname, linkname)
-
 def extract_fname(line, srcroot):
 	line_list = line.split("\"")
 	if len(line_list) > 2:
@@ -55,37 +18,35 @@ def extract_fname(line, srcroot):
 				return fname
 	return ""
 
-def extract_opened_files(strace_log, opened_files, srcroot):
-	file_map = {}
-
+def extract_opened_files(p):
 	try:
-		f = open(strace_log, 'r')
+		f = open(p.strace_log, 'r')
 		for line in f.readlines():
 			if " -1 " not in line:
-				name = extract_fname(line, srcroot)
-				file_map.setdefault(name,True)
+				name = extract_fname(line, p.srcroot)
+				p.file_map.setdefault(name,True)
 
-		for name in file_map.keys():
+		for name in p.file_map.keys():
 			if name.find('..') != -1:
-				opened_files.setdefault(normpath(name),True)
+				p.opened_files.setdefault(normpath(name),True)
 			else:
-				opened_files.setdefault(name,True)
+				p.opened_files.setdefault(name,True)
 
-		dump_to_files(file_map, opened_files)
+		p.dump_to_files()
 
 	except IOError as e:
 		printf(e)
 		sys.exit()
 
-def build_clean_tree(opened_files, srcroot, dstroot, link):
-	if exists(dstroot):
-		shutil.rmtree(dstroot)
+def build_clean_tree(p):
+	if exists(p.dstroot):
+		shutil.rmtree(p.dstroot)
 	
-	os.makedirs(dstroot, mode=0o777)
+	os.makedirs(p.dstroot, mode=0o777)
 		
-	for name in opened_files.keys():
-		src = join(srcroot, name)
-		dst = join(dstroot, name)
+	for name in p.opened_files.keys():
+		src = join(p.srcroot, name)
+		dst = join(p.dstroot, name)
 
 		if not exists(os.path.dirname(dst)):
 			os.makedirs(dirname(dst), mode=0o777)
@@ -94,12 +55,12 @@ def build_clean_tree(opened_files, srcroot, dstroot, link):
 		if islink(src):
 			printf(src + " is a link")
 
-	for name in opened_files.keys():
-		src = join(srcroot, name)
-		dst = join(dstroot, name)
+	for name in p.opened_files.keys():
+		src = join(p.srcroot, name)
+		dst = join(p.dstroot, name)
 
 		if isfile(src) and not os.path.exists(dst):
-			if link:
+			if p.link:
 				os.symlink(src, dst)
 			else:
 				shutil.copyfile(src, dst)
@@ -108,11 +69,12 @@ def build_clean_tree(opened_files, srcroot, dstroot, link):
 def usage():
 	help_info = {
 		"Usage:",
-			"-h, help info,",
-			"-f strace_log,",
-			"-s srcdir, original kernel path,",
-			"-d dstdir, pruned kernel path,",
-			"-l, create symbol link for all files,",
+			"-f strace_log -- output file of strace",
+			"-s srcdir -- original kernel path,",
+			"-d dstdir -- pruned kernel path,",
+			"-h -- help info,",
+			"-l -- create symbol link for all files,",
+			"-c -- craete compiling script",
 	}
 
 	for line in help_info:
@@ -120,49 +82,111 @@ def usage():
 	
 	sys.exit()
 
+def create_compiling_script(p):
+	set_env_sh = [
+		'export PATH=:$PATH:/usr/local/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.8/bin',
+		'export CROSS_COMPILE=aarch64-linux-android-',
+		'export ARCH=arm64',
+	]
+
+	compile_sh = [
+		'syscalls=rename,stat,lstat,mkdir,openat,getcwd,chmod,access,faccessat,readlink,unlinkat,statfs,unlink,open,execve,newfstatat',
+		'strace -f -o mrproper_files.txt -e trace=$syscalls -e signal=none make mrproper',
+		'strace -f -o defconfig_files.txt -e trace=$syscalls -e signal=none make pxa1908_j1lte_eur_defconfig',
+		'strace -f -o strace_log.txt -e trace=$syscalls -e signal=none make -j8',
+		'cat defconfig_files.txt >> strace_log.txt',
+		'cat mrproper_files.txt >> strace_log.txt',
+	]
+
+	p.save_list_to_file("set_env.sh", set_env_sh)
+	p.save_list_to_file("compile.sh", compile_sh)
+
+
+
+__metatype__ = type # new type class
+
+class wraper:
+	def __init__(self):
+		self.opened_files = {}
+		self.file_map = {}
+		self.strace_log = None
+		self.srcroot = None
+		self.dstroot = None
+		self.link = False
+		self.script = False
+
+	def check_options(self):
+		if self.strace_log == None or self.srcroot == None or self.dstroot == None:
+			usage()
+
+	def save_list_to_file(self, filename, listname):
+		f = open(filename,'w')
+		for line in listname:
+			f.writelines(line)
+			f.writelines("\n")
+		f.close()
+
+	def dump_to_files(self):
+		source_list = []
+
+		l = list(self.file_map.keys())
+		l.sort()
+		self.save_list_to_file("file_map.txt", l)
+		l2 = list(self.opened_files.keys())
+		l2.sort()
+		self.save_list_to_file("opened_files.txt", l2)
+
+		for name in self.opened_files.keys():
+			if name[-2:] in ['.c', '.S', '.h']:
+				source_list.append(name)
+		source_list.sort()
+		self.save_list_to_file("source_list.txt", source_list)
 
 def main():
-	opened_files = {}
 
-	strace_log = None
-	srcroot = None
-	dstroot = None
-	link = False
+	p = wraper()
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hf:s:d:l")
+		opts, args = getopt.getopt(sys.argv[1:], "hf:s:d:lc")
 		for opt, arg in opts:
 			if opt == '-h':
 				usage()
 			elif opt == '-f':
-				strace_log = arg
+				p.strace_log = arg
 			elif opt == '-s':
-				srcroot = normpath(arg)
+				p.srcroot = normpath(arg)
 			elif opt == '-d':
-				dstroot = normpath(arg)
+				p.dstroot = normpath(arg)
 			elif opt == '-l':
-				link = True
+				p.link = True
+			elif opt == '-c':
+				p.script = True
 			else:
 				printf("Ignore invalid opt:%s\n" % opt)
 
 	except getopt.GetoptError:
 		usage()
 	
-	if strace_log == None or srcroot == None or dstroot == None:
-		usage()
+	if p.script:
+		create_compiling_script(p)
 
-	if exists(dstroot):
-		printf("remove "+dstroot)
-		rm = input(dstroot + " exists, enter Y if you agree to remove:")
-		if rm in ['y', 'Y']:
-			shutil.rmtree(dstroot)
+	p.check_options()
+
+	if exists(p.dstroot):
+		printf("%s exited!" % p.dstroot)
+		if sys.version[0] < '3':
+			rm = raw_input("Enter Y if you agree to remove:")
 		else:
-			printf("Exit because not agree to remove " + dstroot)
+			rm = input("Enter Y if you agree to remove:")
+		if rm in ['y', 'Y']:
+			shutil.rmtree(p.dstroot)
+		else:
+			printf("Exit because not agree to remove " + p.dstroot)
 			sys.exit()
 
-	os.makedirs(dstroot, mode=0o777)
-	extract_opened_files(strace_log, opened_files, srcroot)
-	build_clean_tree(opened_files, srcroot, dstroot, link)
+	os.makedirs(p.dstroot, mode=0o777)
+	extract_opened_files(p)
+	build_clean_tree(p)
 
 if __name__ == '__main__':
 	# Python2.x & 3.x compatible
