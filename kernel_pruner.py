@@ -1,7 +1,7 @@
 '''
 	[hpyu] 2015.4.8
 	Re-struct the code, remove global varibles
-	time python3.2 make_source_list.py -f ~/ramtmp/kernel/strace_log.txt -s ~/ramtmp/kernel -d  ~/ramtmp/k
+	time python kernel_pruner.py -f ~/ramtmp/kernel/strace_log.txt -s ~/ramtmp/kernel -d  ~/ramtmp/k
 '''
 
 def extract_fname(line, srcroot):
