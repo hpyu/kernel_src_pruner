@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 '''
 	[hpyu] 2015.4.8
 	Re-struct the code, remove global varibles
@@ -69,7 +71,7 @@ def build_clean_tree(p):
 def usage():
 	help_info = [
 		"Usage:",
-			"time python ~/toolkit/kernel_pruner.py  -s strace_log.txt -s . -d ../k",
+			"time python path/kernel_pruner.py  -s strace_log.txt -s . -d ../k",
 			"-f strace_log -- output file of strace",
 			"-s srcdir -- original kernel path,",
 			"-d dstdir -- pruned kernel path,",
@@ -155,15 +157,19 @@ def main():
 			elif opt == '-f':
 				p.strace_log = arg
 			elif opt == '-s':
-				p.srcroot = normpath(arg)
+				p.srcroot = abspath(arg)
 			elif opt == '-d':
-				p.dstroot = normpath(arg)
+				p.dstroot = abspath(arg)
 			elif opt == '-l':
 				p.link = True
 			elif opt == '-c':
 				p.script = True
 			else:
 				printf("Ignore invalid opt:%s\n" % opt)
+
+		printf("srcdir: %s" % p.srcroot)
+		printf("dstdir: %s" % p.dstroot)
+		printf("strace file: %s" % p.strace_log)
 
 	except getopt.GetoptError:
 		usage()
