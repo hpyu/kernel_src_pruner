@@ -4,8 +4,12 @@
 '''
 Author  : Haipeng Yu
 Email   : hpyu@marvell.com
-Function: Prune redundant kernel files
-Usage   : python kernel_pruner.py -f strace_log.txt -s origpath/kernel -d  dstpath/k
+Function: make precise cscope.files and clean kernel tree without redundant files
+Usage   : python somewhere/kernel_pruner.py -f strace_log.txt -s origpath/kernel -d  dstpath/k
+Usage   : python somewhere/kernel_pruner.py -f strace_log.txt
+        : ctags -R -L cscope.files && cscope -Rbqk
+
+Date    : 2015.4
 '''
 
 def extract_fname(line, srcroot):
@@ -91,11 +95,11 @@ def create_compiling_script(p):
 
 	compile_sh = [
 		'syscalls=rename,stat,lstat,mkdir,openat,getcwd,chmod,access,faccessat,readlink,unlinkat,statfs,unlink,open,execve,newfstatat',
-		'strace -f -o mrproper_files.txt -e trace=$syscalls -e signal=none make mrproper',
-		'strace -f -o defconfig_files.txt -e trace=$syscalls -e signal=none make pxa1908_defconfig',
+		'strace -f -o /tmp/mrproper_files.txt -e trace=$syscalls -e signal=none make mrproper',
+		'strace -f -o /tmp/defconfig_files.txt -e trace=$syscalls -e signal=none make pxa1908_defconfig',
 		'strace -f -o strace_log.txt -e trace=$syscalls -e signal=none make -j8',
-		'cat defconfig_files.txt >> strace_log.txt',
-		'cat mrproper_files.txt >> strace_log.txt',
+		'cat /tmp/defconfig_files.txt >> strace_log.txt',
+		'cat /tmp/mrproper_files.txt >> strace_log.txt',
 	]
 
 	p.save_list_to_file("set_env.sh", set_env_sh)
