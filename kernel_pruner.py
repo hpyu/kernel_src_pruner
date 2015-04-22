@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+# Python2.x and 3.x compatible
 
 '''
-	[hpyu] 2015.4.8
-	Re-struct the code, remove global varibles
-	time python kernel_pruner.py -f ~/ramtmp/kernel/strace_log.txt -s ~/ramtmp/kernel -d  ~/ramtmp/k
+Author  : Haipeng Yu
+Email   : hpyu@marvell.com
+Function: Prune redundant kernel files
+Usage   : python kernel_pruner.py -f strace_log.txt -s origpath/kernel -d  dstpath/k
 '''
 
 def extract_fname(line, srcroot):
@@ -95,7 +97,7 @@ def create_compiling_script(p):
 	compile_sh = [
 		'syscalls=rename,stat,lstat,mkdir,openat,getcwd,chmod,access,faccessat,readlink,unlinkat,statfs,unlink,open,execve,newfstatat',
 		'strace -f -o mrproper_files.txt -e trace=$syscalls -e signal=none make mrproper',
-		'strace -f -o defconfig_files.txt -e trace=$syscalls -e signal=none make pxa1908_j1lte_eur_defconfig',
+		'strace -f -o defconfig_files.txt -e trace=$syscalls -e signal=none make pxa1908_defconfig',
 		'strace -f -o strace_log.txt -e trace=$syscalls -e signal=none make -j8',
 		'cat defconfig_files.txt >> strace_log.txt',
 		'cat mrproper_files.txt >> strace_log.txt',
