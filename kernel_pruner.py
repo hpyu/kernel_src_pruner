@@ -36,8 +36,6 @@ def extract_opened_files(p):
 			else:
 				p.opened_files.setdefault(name,True)
 
-		p.dump_to_files()
-
 	except IOError as e:
 		printf(e)
 		sys.exit()
@@ -55,9 +53,6 @@ def build_clean_tree(p):
 		if not exists(os.path.dirname(dst)):
 			os.makedirs(dirname(dst), mode=0o777)
 		#	os.mkdir(dst, mode=0o777, dir_fd=None)
-
-		if islink(src):
-			printf(src + " is a link")
 
 	for name in p.opened_files.keys():
 		src = join(p.srcroot, name)
@@ -115,14 +110,18 @@ class wraper:
 		self.opened_files = {}
 		self.file_map = {}
 		self.strace_log = None
-		self.srcroot = None
+		self.srcroot = abspath('.')
 		self.dstroot = None
 		self.link = False
 		self.script = False
+		self.cscope_files_only = False
 
 	def check_options(self):
-		if self.strace_log == None or self.srcroot == None or self.dstroot == None:
+		if self.strace_log == None:
 			usage()
+
+		if self.dstroot == None:
+			self.cscope_files_only = True
 
 	def save_list_to_file(self, filename, listname):
 		f = open(filename,'w')
@@ -134,18 +133,18 @@ class wraper:
 	def dump_to_files(self):
 		source_list = []
 
-		l = list(self.file_map.keys())
-		l.sort()
-		self.save_list_to_file("file_map.txt", l)
-		l2 = list(self.opened_files.keys())
-		l2.sort()
-		self.save_list_to_file("opened_files.txt", l2)
+		flist = list(self.opened_files.keys())
+		flist.sort()
+
+#		self.save_list_to_file("cscope.files", flist)
+#		printf("save all file list to cscope.files")
 
 		for name in self.opened_files.keys():
 			if name[-2:] in ['.c', '.S', '.h']:
 				source_list.append(name)
 		source_list.sort()
-		self.save_list_to_file("source_list.txt", source_list)
+		self.save_list_to_file("cscope.files", source_list)
+		printf("save .c .S .h files to cscope.files")
 
 def main():
 
@@ -181,21 +180,27 @@ def main():
 
 	p.check_options()
 
-	if exists(p.dstroot):
-		printf("%s exited!" % p.dstroot)
-		if sys.version[0] < '3':
-			rm = raw_input("Enter Y if you agree to remove:")
-		else:
-			rm = input("Enter Y if you agree to remove:")
-		if rm in ['y', 'Y']:
-			shutil.rmtree(p.dstroot)
-		else:
-			printf("Exit because not agree to remove " + p.dstroot)
-			sys.exit()
+	if p.dstroot != None:
+		if exists(p.dstroot):
+			printf("%s exited!" % p.dstroot)
+			if sys.version[0] < '3':
+				rm = raw_input("Enter Y if you agree to remove:")
+			else:
+				rm = input("Enter Y if you agree to remove:")
+			if rm in ['y', 'Y']:
+				shutil.rmtree(p.dstroot)
+			else:
+				printf("Exit because not agree to remove " + p.dstroot)
+				sys.exit()
 
-	os.makedirs(p.dstroot, mode=0o777)
+		os.makedirs(p.dstroot, mode=0o777)
+
 	extract_opened_files(p)
-	build_clean_tree(p)
+
+	p.dump_to_files()
+
+	if not p.cscope_files_only:
+		build_clean_tree(p)
 
 if __name__ == '__main__':
 	# Python2.x & 3.x compatible

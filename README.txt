@@ -33,12 +33,18 @@ kernel_pruner
     2. Run kernel_pruner.py
       - suppose you are in the original compiled kernel dir
       - make copy tree:
-        * ./kernel_pruner.py -f strace_log.txt -s . -d  anywhere/k
+        * kernel_pruner.py -f strace_log.txt -s . -d  anywhere/k
+
       - make link tree:
-        * ./kernel_pruner.py -f strace_log.txt -s . -d  anywhere/k -l
+        * kernel_pruner.py -f strace_log.txt -s . -d  anywhere/k -l
 		* cscope doesn't support external link file, please refer below link to fix:
 			http://blog.csdn.net/sudolee/article/details/9052291
 		* time ctags -R && find -L . | grep -E '\.c$|\.h$|\.S$|\.cpp$|\.lds$' > cscope.files &&  time cscope -Rbqk 
+
+      - create cscope.files only
+		* kernel_pruner.py -f strace_log.txt
+	    * cscope.files will be created no matter dst dir is created or not
+		* ctags -R -L cscope.files && cscope -Rbqk
 
     3. verify the new kernel tree can be compiled normally
       - enter the new kernel dir
