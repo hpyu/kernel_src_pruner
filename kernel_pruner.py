@@ -73,12 +73,9 @@ def usage():
 	help_info = [
 		"Usage:",
 		"	steps::",
-		"	1, python somewhere/kernel_pruner.py -c",
-		"	2, source set_env.sh",
-		"	   source compile.sh",
-		"	3, python somewhere/kernel_pruner.py -f strace_log.txt",
-		"	4, ctags -R -L cscope.files && cscope -Rbqk",
-		"	or",
+		"	1, setup cross compiling environmet for kernel",
+		"	2, source make_tags.sh your_proj_defconfig",
+		"	to generate a clean kernel tree:",
 		"	3, python somewhere/kernel_pruner.py -f strace_log.txt -s origpath/kernel -d  dstpath/k",
 		"",
 		"	Options:",
@@ -87,7 +84,6 @@ def usage():
 		"	-d dstdir -- pruned kernel path,",
 		"	-h -- help info,",
 		"	-l -- create symbol link for all files,",
-		"	-c -- craete compiling scripts only",
 		"",
 		"	README.txt for more info",
 	]
@@ -96,43 +92,6 @@ def usage():
 		printf(line)
 	
 	sys.exit()
-
-def create_compiling_script(p):
-	set_env_sh = [
-		'#!/bin/bash',
-		'export PATH=:$PATH:/usr/local/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.8/bin',
-		'export PATH=:$PATH:../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.8/bin',
-		'export CROSS_COMPILE=aarch64-linux-android-',
-		'export ARCH=arm64',
-	]
-
-	compile_sh = [
-		'#!/bin/bash',
-		'',
-		'if [ -z "$1" ]; then',
-		'	echo \"Usage: source compile.sh your_proj_defconfig\"',
-		'	return',
-		'fi',
-		'',
-		'echo "defconfig: $1"',
-		'syscalls=rename,stat,lstat,mkdir,openat,getcwd,chmod,access,faccessat,readlink,unlinkat,statfs,unlink,open,execve,newfstatat',
-		'strace -f -o /tmp/mrproper_files.txt -e trace=$syscalls -e signal=none make mrproper',
-		'strace -f -o /tmp/defconfig_files.txt -e trace=$syscalls -e signal=none make $1',
-		'strace -f -o strace_log.txt -e trace=$syscalls -e signal=none make -j8',
-		'cat /tmp/defconfig_files.txt >> strace_log.txt',
-		'cat /tmp/mrproper_files.txt >> strace_log.txt',
-	]
-
-	p.save_list_to_file("set_env.sh", set_env_sh)
-	p.save_list_to_file("compile.sh", compile_sh)
-	os.system("chmod +x set_env.sh")
-	os.system("chmod +x compile.sh")
-
-	printf("set_env.sh and compile.sh created, edit PATH for your environment\n")
-	printf("Run the scripts to compile kernel to generate strace_log.txt:")
-	printf("source set_env.sh")
-	printf("source compile.sh your_proj_defconfig")
-
 
 
 __metatype__ = type # new type class
@@ -145,7 +104,6 @@ class wraper:
 		self.srcroot = abspath('.')
 		self.dstroot = None
 		self.link = False
-		self.script_only = False
 		self.cscope_files_only = False
 
 	def check_options(self):
@@ -197,7 +155,7 @@ def main():
 	p = wraper()
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hf:s:d:lc")
+		opts, args = getopt.getopt(sys.argv[1:], "hf:s:d:l")
 		for opt, arg in opts:
 			if opt == '-h':
 				usage()
@@ -209,8 +167,6 @@ def main():
 				p.dstroot = abspath(arg)
 			elif opt == '-l':
 				p.link = True
-			elif opt == '-c':
-				p.script_only = True
 			else:
 				printf("Ignore invalid opt:%s\n" % opt)
 
@@ -221,13 +177,9 @@ def main():
 	except getopt.GetoptError:
 		usage()
 
-	if p.script_only:
-		create_compiling_script(p)
-		sys.exit("Only generate scripts")
-
 	p.check_dstroot()
 
-	if p.strace_log == None and not p.script_only:
+	if p.strace_log == None:
 		usage()
 
 	extract_opened_files(p)
