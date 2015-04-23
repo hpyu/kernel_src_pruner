@@ -72,13 +72,24 @@ def build_clean_tree(p):
 def usage():
 	help_info = [
 		"Usage:",
-			"time python path/kernel_pruner.py  -s strace_log.txt -s . -d ../k",
-			"-f strace_log -- output file of strace",
-			"-s srcdir -- original kernel path,",
-			"-d dstdir -- pruned kernel path,",
-			"-h -- help info,",
-			"-l -- create symbol link for all files,",
-			"-c -- craete compiling script",
+		"	steps::",
+		"	1, python somewhere/kernel_pruner.py -c",
+		"	2, source set_env.sh",
+		"	   source compile.sh",
+		"	3, python somewhere/kernel_pruner.py -f strace_log.txt",
+		"	4, ctags -R -L cscope.files && cscope -Rbqk",
+		"	or",
+		"	3, python somewhere/kernel_pruner.py -f strace_log.txt -s origpath/kernel -d  dstpath/k",
+		"",
+		"	Options:",
+		"	-f strace_log -- output file of strace",
+		"	-s srcdir -- original kernel path,",
+		"	-d dstdir -- pruned kernel path,",
+		"	-h -- help info,",
+		"	-l -- create symbol link for all files,",
+		"	-c -- craete compiling scripts only",
+		"",
+		"	README.txt for more info",
 	]
 
 	for line in help_info:
@@ -88,15 +99,25 @@ def usage():
 
 def create_compiling_script(p):
 	set_env_sh = [
+		'#!/bin/bash',
 		'export PATH=:$PATH:/usr/local/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.8/bin',
+		'export PATH=:$PATH:../prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.8/bin',
 		'export CROSS_COMPILE=aarch64-linux-android-',
 		'export ARCH=arm64',
 	]
 
 	compile_sh = [
+		'#!/bin/bash',
+		'',
+		'if [ -z "$1" ]; then',
+		'	echo \"Usage: source compile.sh your_proj_defconfig\"',
+		'	return',
+		'fi',
+		'',
+		'echo "defconfig: $1"',
 		'syscalls=rename,stat,lstat,mkdir,openat,getcwd,chmod,access,faccessat,readlink,unlinkat,statfs,unlink,open,execve,newfstatat',
 		'strace -f -o /tmp/mrproper_files.txt -e trace=$syscalls -e signal=none make mrproper',
-		'strace -f -o /tmp/defconfig_files.txt -e trace=$syscalls -e signal=none make pxa1908_defconfig',
+		'strace -f -o /tmp/defconfig_files.txt -e trace=$syscalls -e signal=none make $1',
 		'strace -f -o strace_log.txt -e trace=$syscalls -e signal=none make -j8',
 		'cat /tmp/defconfig_files.txt >> strace_log.txt',
 		'cat /tmp/mrproper_files.txt >> strace_log.txt',
@@ -104,6 +125,13 @@ def create_compiling_script(p):
 
 	p.save_list_to_file("set_env.sh", set_env_sh)
 	p.save_list_to_file("compile.sh", compile_sh)
+	os.system("chmod +x set_env.sh")
+	os.system("chmod +x compile.sh")
+
+	printf("set_env.sh and compile.sh created, edit PATH for your environment\n")
+	printf("Run the scripts to compile kernel to generate strace_log.txt:")
+	printf("source set_env.sh")
+	printf("source compile.sh your_proj_defconfig")
 
 
 
@@ -117,15 +145,29 @@ class wraper:
 		self.srcroot = abspath('.')
 		self.dstroot = None
 		self.link = False
-		self.script = False
+		self.script_only = False
 		self.cscope_files_only = False
 
 	def check_options(self):
-		if self.strace_log == None:
-			usage()
+		return
 
+	def check_dstroot(self):
 		if self.dstroot == None:
 			self.cscope_files_only = True
+		else:
+			if exists(self.dstroot):
+				printf("%s exited!" % self.dstroot)
+				if sys.version[0] < '3':
+					rm = raw_input("Enter Y if you agree to remove:")
+				else:
+					rm = input("Enter Y if you agree to remove:")
+				if rm in ['y', 'Y']:
+					shutil.rmtree(self.dstroot)
+				else:
+					printf("Exit because not agree to remove " + self.dstroot)
+					sys.exit()
+
+			os.makedirs(self.dstroot, mode=0o777)
 
 	def save_list_to_file(self, filename, listname):
 		f = open(filename,'w')
@@ -168,7 +210,7 @@ def main():
 			elif opt == '-l':
 				p.link = True
 			elif opt == '-c':
-				p.script = True
+				p.script_only = True
 			else:
 				printf("Ignore invalid opt:%s\n" % opt)
 
@@ -178,26 +220,15 @@ def main():
 
 	except getopt.GetoptError:
 		usage()
-	
-	if p.script:
+
+	if p.script_only:
 		create_compiling_script(p)
+		sys.exit("Only generate scripts")
 
-	p.check_options()
+	p.check_dstroot()
 
-	if p.dstroot != None:
-		if exists(p.dstroot):
-			printf("%s exited!" % p.dstroot)
-			if sys.version[0] < '3':
-				rm = raw_input("Enter Y if you agree to remove:")
-			else:
-				rm = input("Enter Y if you agree to remove:")
-			if rm in ['y', 'Y']:
-				shutil.rmtree(p.dstroot)
-			else:
-				printf("Exit because not agree to remove " + p.dstroot)
-				sys.exit()
-
-		os.makedirs(p.dstroot, mode=0o777)
+	if p.strace_log == None and not p.script_only:
+		usage()
 
 	extract_opened_files(p)
 

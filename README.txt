@@ -1,5 +1,5 @@
 h1. kernel_pruner.py
-Here I'm glad to share you a script, which can generated precise cscope.files and clean kernel tree without redundant files.
+This script can generated precise cscope.files and clean kernel tree without redundant files.
 It can save your time and patience when searching kernel symbols.
 
 You can get it by
@@ -24,12 +24,11 @@ or
       # generate set_env.sh and compile.sh
         #* python kernel_pruner.py -c
 
-      # change cross compiler path in set_env.sh, change xxx_defconfig file in compile.sh for your requirement
-        #* e.g. change pxa1908_defconfig to pxa1936_defconfig
+      # edit set_env.sh to change your toolchain bin path
 
       # compile kernel
         #* source set_env.sh
-        #* source compile.sh
+        #* source compile.sh your_proj_defconfig
 
       # make sure kernel is compiled successfully, strace_log.txt is the must file needed
       # If strace doesn't support multiple thread compiling, better to install a new vesion
@@ -43,6 +42,8 @@ or
         #* kernel_pruner.py -f strace_log.txt
            #** cscope.files will be created no matter dst dir is created or not
            #** ctags -R -L cscope.files && cscope -Rbqk
+           #** when you add/remove files, you can add/remove the file name in cscope.files manually if you don't want to generate strace_log.txt again.
+           #** when you change the code, you can rerun the ctags and cscope commands
 
       # make copy tree:
         #* kernel_pruner.py -f strace_log.txt -s . -d  anywhere/k
@@ -59,5 +60,5 @@ or
     h5. verify the new kernel tree can be compiled normally
       # enter the new kernel dir
       # source orig_kernel_dir/set_env.sh
-      # source orig_kernel_dir/compile.sh
+      # source orig_kernel_dir/compile.sh your_proj_defconfig
 
