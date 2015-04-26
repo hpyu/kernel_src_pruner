@@ -53,6 +53,7 @@ class wraper:
 		self.file_list.sort()
 
 		self.save_list_to_file(join(self.srcroot, "cscope.files"), self.file_list)
+		printf("%s is created in srcroot." % "cscope.files")
 	
 
 def main():

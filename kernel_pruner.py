@@ -147,8 +147,8 @@ class wraper:
 			if name[-2:] in ['.c', '.S', '.h']:
 				source_list.append(name)
 		source_list.sort()
-		self.save_list_to_file("cscope.files", source_list)
-		printf("save .c .S .h files to cscope.files")
+		self.save_list_to_file(join(self.srcroot,"cscope.files"), source_list)
+		printf("cscope.files generated in srcroot")
 
 def main():
 
@@ -170,8 +170,8 @@ def main():
 			else:
 				printf("Ignore invalid opt:%s\n" % opt)
 
-		printf("srcdir: %s" % p.srcroot)
-		printf("dstdir: %s" % p.dstroot)
+		printf("srcroot: %s" % p.srcroot)
+		printf("dstroot: %s" % p.dstroot)
 		printf("strace file: %s" % p.strace_log)
 
 	except getopt.GetoptError:
