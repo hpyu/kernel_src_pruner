@@ -40,6 +40,12 @@ def extract_opened_files(p):
 			else:
 				p.opened_files.setdefault(name,True)
 
+		for name in p.file_map.keys():
+			if name[:2] == './':
+				del(p.opened_files[name])
+				name = name[2:]
+				p.opened_files.setdefault(name,True)
+
 	except IOError as e:
 		printf(e)
 		sys.exit()
@@ -56,7 +62,6 @@ def build_clean_tree(p):
 
 		if not exists(os.path.dirname(dst)):
 			os.makedirs(dirname(dst), mode=0o777)
-		#	os.mkdir(dst, mode=0o777, dir_fd=None)
 
 	for name in p.opened_files.keys():
 		src = join(p.srcroot, name)
@@ -68,7 +73,7 @@ def build_clean_tree(p):
 			else:
 				shutil.copyfile(src, dst)
 				shutil.copymode(src, dst)
-			
+	
 def usage():
 	help_info = [
 		"Usage:",
@@ -139,9 +144,6 @@ class wraper:
 
 		flist = list(self.opened_files.keys())
 		flist.sort()
-
-#		self.save_list_to_file("cscope.files", flist)
-#		printf("save all file list to cscope.files")
 
 		for name in self.opened_files.keys():
 			if name[-2:] in ['.c', '.S', '.h']:
