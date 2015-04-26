@@ -1,23 +1,36 @@
-h1. kernel_pruner.py
-This script can generated precise cscope.files and clean kernel tree without redundant files.
-It can save your time and patience when searching kernel symbols.
+h1. Introduction 
 
-You can get it by
+Here are 2 python scripts who can generated precise cscope.files and 
+a clean kernel tree without redundant files.
+The cscope.files is used to create ctags & cscope tags, and  helps save your 
+time and patience when searching kernel symbols.
+
+You can get it by:
 git clone https://github.com/hpyu/kernel_src_pruner.git
 
-*Please send mail to hpyu@marvell.com for any problem when you are using it, I'm willing to improve it with your suggestion.*
+*collect_cscope_files.py* makes cscope.files based on *.o.cmd, it works in 
+2s(i7-3770 8 cores). *For most users, this script is enough.*
 
-  h3. Function
-    1. This script pick out only used kernel source files from the whole kernel tree
-    2. It can help navigate the kernel source code much more quickly and precisely with ctags&cscope or source insight
-    3. It give you a clear view of what source files used in a project
+*kernel_pruner.py* can make cscope.files and a clean kernel tree, it's based on 
+strace, works in 12s(i7-3770 8 cores), user can use it if interested on make 
+a clean kernel tree.
+*make_tags.sh* is a wraper of kernel_pruner.py,it makes cscope.files or a clean 
+kernel tree in a single line command.
 
-  h3. How it works
-    1. Use strace to capture all file accessed when kernel compiling
-    2. Parse the strace output file, pick out the used files to build a clean kernel tree and/or generate cscope.files
-    3. The new kernel tree can be compiled normally with the defconfig when compiling with strace
+You can send mail to *hpyu@marvell.com* for any question about them,
+I'm willing to improve it with your suggestion.
 
-  h3. Usage
+h1. Usage
+  h3. 1. collect_cscope_files.py
+    h5. Pre-conditions
+      # setup cross compiling enviroment
+      # kernel can pass compile normally
+
+	h5. command line
+	  # somewhere/collect_cscope_files.py kernel_src_dir kernel_obj_dir
+	    #* cscope.files will be genereated in kernel_src_dir
+
+  h3. 2. kernel_pruner.py & make_tags.sh
     h5. Pre-conditions
       # setup cross compiling enviroment
       # make sure kernel can pass compile normally
@@ -31,8 +44,8 @@ git clone https://github.com/hpyu/kernel_src_pruner.git
       # enter kernel dir
       # create cscope.files only
         #* somewhere/make_tags.sh somewhere/kernel_pruner.py your_proj_defconfig
-           #** command "ctags -R -L cscope.files && cscope -Rbqk" are called to generate tags
-           #** cscope.files will be removed when you run "make mrproper", so a backup file cs.files is created
+           #** command "ctags -R -L cscope.files && cscope -Rbqk" is called to generate tags
+           #** cscope.files will be removed after run "make mrproper", so a backup file cs.files is created
            #** after clean kernel, you can run "cp cs.files cscope.file" and "ctags -R -L cscope.files && cscope -Rbqk"
       # make cscope.files and copy tree:
         #* somewhere/make_tags.sh somewhere/kernel_pruner.py your_proj_defconfig dstdir
@@ -41,9 +54,21 @@ git clone https://github.com/hpyu/kernel_src_pruner.git
            #** cscope doesn't support external link file, please refer below link to fix:
                         http://blog.csdn.net/sudolee/article/details/9052291
            #** ctags -R && find -L . | grep -E '\.c$|\.h$|\.S$|\.cpp$|\.lds$' > cscope.files &&  cscope -Rbqk
+      # Run kernel_pruner.py directly if strace_log.txt already exists
+	#* somewhere/kernel_pruner.py -f strace_log.txt
+	#* somewhere/kernel_pruner.py -f strace_log.txt -s . -d anywhere/dstdir
+	#* somewhere/kernel_pruner.py -f strace_log.txt -s . -d anywhere/dstdir -l
 
     h5. verify that the new kernel tree can be compiled normally
       # enter the new kernel dir
       # make mrproper && make your_proj_defconfig &&  make -j8
 
+h1. Verification
 
+Since kernel_pruner.py can make a clean kernel tree that can pass compiling,
+so its cscope.files is trustable. Compling cscope.files from 
+collect_cscople_file.py to kernel_pruner.py's, you can see a a few redundant .h
+files exists, and several .h files missed, but mostly they have no defination 
+or unsed in projects.
+
+This slightly difference dosen't harm the symbol searching.
