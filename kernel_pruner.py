@@ -40,7 +40,7 @@ def extract_opened_files(p):
 			else:
 				p.opened_files.setdefault(name,True)
 
-		for name in p.file_map.keys():
+		for name in p.opened_files.keys():
 			if name[:2] == './':
 				del(p.opened_files[name])
 				name = name[2:]
